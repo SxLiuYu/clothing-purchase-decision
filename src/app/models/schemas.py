@@ -1,10 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
-
-
-class BaseSchema(BaseModel):
-    class Config:
-        extra = "allow"
+from typing import Any, Dict, List, Optional
 
 
 class Item(BaseModel):
@@ -16,7 +11,7 @@ class Item(BaseModel):
     occasion: Optional[str]
     color: str
     material: Optional[str]
-    attributes: Dict[str, object] = Field(default_factory=dict)
+    attributes: Dict[str, Any] = Field(default_factory=dict)
     price: Optional[float] = None
 
 
@@ -36,8 +31,8 @@ class OutfitRequest(BaseModel):
     occasion: str
     datetime: str
     location: Optional[Dict[str, float]] = None
-    weather: Optional[Dict[str, object]] = None
-    constraints: Dict[str, object] = Field(default_factory=dict)
+    weather: Optional[Dict[str, Any]] = None
+    constraints: Dict[str, Any] = Field(default_factory=dict)
 
 
 class OutfitItem(BaseModel):
@@ -56,7 +51,8 @@ class OutfitPlan(BaseModel):
     items: List[OutfitItem]
     rationale: str
     risk_flags: List[str] = Field(default_factory=list)
-    alternatives: Dict[str, Dict[str, object]] = Field(default_factory=dict)
+    alternatives: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    switch_options: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class OutfitResponse(BaseModel):
@@ -67,14 +63,14 @@ class OutfitResponse(BaseModel):
 
 class ROIRequest(BaseModel):
     user_id: str
-    new_item: Dict[str, object]
+    new_item: Dict[str, Any]
 
 
 class ROIResponse(BaseModel):
     roi_score: float
     recommendation: str
-    similarity: Dict[str, object]
-    combination_gap: Dict[str, object]
+    similarity: Dict[str, Any]
+    combination_gap: Dict[str, Any]
     conflicts: List[Dict[str, str]] = Field(default_factory=list)
     suggestions: List[Dict[str, str]] = Field(default_factory=list)
 
