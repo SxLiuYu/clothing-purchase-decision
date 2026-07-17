@@ -1,0 +1,89 @@
+﻿import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+client = TestClient(app)
+
+
+def test_health():
+    response = client.get('/health')
+    assert response.status_code == 200
+    assert response.json() == {'status': 'ok'}
+
+
+def test_wardrobe_item_lifecycle():
+    user_id = 'user-1'
+    payload = {
+        'user_id': user_id,
+        'item_id': 'item-1',
+        'category': 'outwear',
+        'style': 'formal',
+        'season': 'spring',
+        'occasion': 'commute',
+        'color': 'light_blue',
+        'material': 'cotton',
+        'attributes': {'fit': 'slim'},
+        'price': 299,
+    }
+    index_response = client.post('/api/v3/wardrobe/items', json=payload)
+    assert index_response.status_code == 200
+    assert index_response.json()['status'] == 'indexed'
+    list_response = client.get(f'/api/v3/wardrobe/users/{user_id}/items')
+    assert list_response.status_code == 200
+    assert list_response.json()['count'] == 1
+
+
+def test_outfit_decision_chain():
+    user_id = 'user-2'
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id,
+        'item_id': 'item-1',
+        'category': 'outwear',
+        'style': 'formal',
+        'season': 'spring',
+        'occasion': 'commute',
+        'color': 'light_blue',
+    })
+    response = client.post('/api/v3/decisions/outfit', json={
+        'user_id': user_id,
+        'occasion': 'formal',
+        'datetime': '2026-07-16T08:00:00+08:00',
+        'location': {'lat': 31.23, 'lng': 121.47},
+        'weather': {'temperature_c': 16, 'condition': 'light_rain', 'humidity': 0.65},
+        'constraints': {'avoid_materials': ['wool'], 'must_have': ['formal_shirt'], 'duration_hours': 8},
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body['decision_id']
+    assert body['confidence'] >= 0.5
+    assert body['outfits'][0]['risk_flags']
+
+
+def test_roi_and_feedback_loop():
+    user_id = 'user-3'
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id,
+        'item_id': 'item-10',
+        'category': 'outwear',
+        'style': 'formal',
+        'season': 'spring',
+        'occasion': 'commute',
+        'color': 'light_blue',
+    })
+    roi_response = client.post('/api/v3/shop/roi-analysis', json={
+        'user_id': user_id,
+        'new_item': {'category': 'outwear', 'color': 'light_blue', 'price': 299, 'score': 0.88},
+    })
+    assert roi_response.status_code == 200
+    roi_body = roi_response.json()
+    assert roi_body['combination_gap']['new_combinations'] >= 1
+    feedback_response = client.post('/api/v3/body/feedback', json={
+        'user_id': user_id,
+        'item_id': 'item-10',
+        'fit_feedback': 'tight_waist',
+        'visual_comfort': 'exposed_belly',
+        'occasion': 'commute',
+    })
+    assert feedback_response.status_code == 200
+    assert 'tight_waist' in feedback_response.json()['updated_profile']['sensitive_areas']

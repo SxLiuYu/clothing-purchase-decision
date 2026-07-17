@@ -1,0 +1,27 @@
+[project]
+name = "clothing-purchase-decision"
+version = "0.1.0"
+description = "智能衣橱 + AI 搭配师原型"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi==0.95.2",
+    "uvicorn[standard]",
+    "pydantic==1.10.13",
+    "python-dotenv>=1.0",
+    "httpx>=0.24"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio",
+    "httpx"
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
