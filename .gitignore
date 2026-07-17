@@ -1,0 +1,35 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+.pyc
+.pytest_cache/
+*.egg-info/
+
+# 临时与备份文件
+*.bak
+*.tmp
+*.orig
+*.zip
+*.tar.gz
+*.rar
+
+# IDE
+.idea/
+.vscode/
+
+# 本项目临时工作产物
+pydebug.txt
+module_c_backup.txt
+module_c_current.txt
+patch_*.py
+patch_*.diff
+contentA.md
+contentB.md
+contentC.md
+check_*.py
+base_v2_backup.md
+v3_superpower_user_tests.md
+
+# 可忽略来源
+!.gitignore
