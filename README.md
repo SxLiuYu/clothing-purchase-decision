@@ -1,7 +1,10 @@
-# ´©ÒÂ¹ºÒÂ¾ö²ß
+ï»¿# Clothing Purchase Decision
 
-Ö÷ÍÆÎÄµµ£º
-- Éè¼Æ·½°¸_v3_superpowers.md
+Core docs:
+- è®¾è®¡æ–¹æ¡ˆ_v3_superpowers.md
+- è®¾è®¡æ–¹æ¡ˆ_v3_hybrid.md
 
-ÔËĞĞ²âÊÔ£º
-- pytest
+Run tests:
+
+pytest
+

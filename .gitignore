@@ -24,3 +24,5 @@ v3_superpower_user_tests.md
 
 # Keep gitignore tracked
 !.gitignore
+.agnes/
+
