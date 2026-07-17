@@ -1,8 +1,8 @@
-﻿from collections import defaultdict
+from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
 
-from app.models.schemas import BodyProfile, Item, Relationship
+from app.models.schemas import Item, Relationship
 
 
 class MemoryStore:
@@ -82,3 +82,4 @@ class MemoryStore:
 
 
 store = MemoryStore()
+

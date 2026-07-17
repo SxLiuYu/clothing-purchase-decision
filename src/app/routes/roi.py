@@ -1,7 +1,11 @@
-﻿from typing import Dict
+from typing import Dict
 
 from app.models.schemas import ROIRequest, ROIResponse
 from app.services.store import store
+from fastapi import APIRouter
+
+
+router = APIRouter()
 
 
 def _similarity_verdict(score: float):

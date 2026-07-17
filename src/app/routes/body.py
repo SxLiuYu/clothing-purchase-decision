@@ -1,6 +1,10 @@
-﻿from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException
 from app.models.schemas import BodyFeedbackRequest, UpdatedProfile
 from app.services.store import store
+from fastapi import APIRouter
+
+
+router = APIRouter()
 
 router = APIRouter()
 
