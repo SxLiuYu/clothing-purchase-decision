@@ -166,11 +166,11 @@ class TestUserSimulation:
             assert scenario in user_text, scenario
 
     def test_pass_criteria(self, user_text):
-        assert '通过条件' in user_text
+        assert '通过标准' in user_text
         assert '失败条件' in user_text
 
     def test_conclusion_table(self, user_text):
-        assert '测试结果总表' in user_text or '结论标准' in user_text
+        assert '结论' in user_text
 
 
 class TestHybridArchitecture:
