@@ -1,3 +1,4 @@
+﻿# store.py - fixed to match UpdatedProfile schema
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
@@ -56,14 +57,14 @@ class MemoryStore:
         user = self.get_or_create_user(user_id)
         profile = user.setdefault('body_profile', {})
         sensitive_areas = set(profile.get('sensitive_areas', []))
-        fit_preferences = dict(profile.get('fit_preferences', {}))
+        fit_preference = dict(profile.get('fit_preference', {}))  # Changed to fit_preference
         if payload.get('fit_feedback'):
             sensitive_areas.add(payload['fit_feedback'])
-            fit_preferences[payload.get('item_id', 'global')] = payload.get('fit_feedback')
+            fit_preference[payload.get('item_id', 'global')] = payload.get('fit_feedback')
         if payload.get('visual_comfort'):
             sensitive_areas.add(payload['visual_comfort'])
         profile['sensitive_areas'] = sorted(sensitive_areas)
-        profile['fit_preferences'] = fit_preferences
+        profile['fit_preference'] = fit_preference  # Changed to fit_preference
         return profile
 
     def _index_item(self, user_id: str, record: Dict) -> None:
@@ -82,4 +83,3 @@ class MemoryStore:
 
 
 store = MemoryStore()
-

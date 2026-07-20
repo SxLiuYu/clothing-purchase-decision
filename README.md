@@ -1,5 +1,7 @@
 # 穿衣购衣决策
 
+智能衣橱 + AI 搭配师原型，当前可基于 FastAPI 体验核心接口。
+
 本地可运行原型已加入仓库，当前可直接基于 FastAPI 体验核心接口。
 
 ## 快速开始
@@ -8,7 +10,7 @@
 python -m venv .venv
 source .venv/Scripts/activate
 pip install -r requirements.txt
-uvicorn src.app.main:app --reload
+python run.py
 ```
 
 ## 默认测试
@@ -32,3 +34,4 @@ python -m pytest
 - B01+B02+B05 决策输入、天气接入与决策链
 - C01+C08 买前 ROI 计算
 - B09/D01 动态体态反馈入口
+
