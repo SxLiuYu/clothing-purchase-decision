@@ -208,7 +208,7 @@ class TestSuperpower1MultiObjectiveOptimization:
         ]
         
         user_profile = {
-            'fit_preferences': {},
+            'fit_preference': {},
             'wardrobe_graph': {'nodes': []}
         }
         
