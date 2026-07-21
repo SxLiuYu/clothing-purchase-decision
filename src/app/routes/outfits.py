@@ -106,6 +106,7 @@ def _risks_for_item(name: str, weather: Dict, duration_hours: int) -> List[str]:
 
 
 def _build_example_candidates(active_rules: List[Any], weather: Dict, constraints: Dict, top_rank: int) -> List[Dict[str, Any]]:
+    """冷启动 fallback：衣橱为空时返回的默认示例候选。"""
     candidates = []
     items = [
         {"category": "outwear", "name": "light_blue_dress_shirt", "base_score": 92, "fit_feedback": "comfortable", "rationale": "Meets formal commute while remaining breathable."},
@@ -171,10 +172,85 @@ def _build_example_candidates(active_rules: List[Any], weather: Dict, constraint
     return top_candidates
 
 
+def _build_candidates_from_wardrobe(
+    active_rules: List[Any],
+    weather: Dict,
+    constraints: Dict,
+    top_rank: int,
+    user_id: str,
+) -> List[Dict[str, Any]]:
+    """从用户衣橱图谱动态生成候选方案；衣橱为空时回退到示例候选。"""
+    user = store.get_or_create_user(user_id)
+    nodes = user.get('wardrobe_graph', {}).get('nodes', [])
+
+    if not nodes:
+        return _build_example_candidates(active_rules, weather, constraints, top_rank)
+
+    duration_hours = int(weather.get('duration_hours', 0) or 0)
+    condition = str(weather.get('condition', '')).lower()
+    candidates = []
+
+    for node in nodes:
+        attrs = node.get('attributes', {}) or {}
+        category = attrs.get('category', '') or ''
+        item_id = node.get('item_id')
+        category_score, penalties = _category_hard_score(category, active_rules)
+        # 基础分 70 + 硬约束调整，上限 92
+        score = round(min(92.0, 70.0 + category_score * 0.3), 1)
+        score = max(score, 10.0)
+
+        risks: List[str] = []
+        if condition in {'rain', 'heavy rain', 'light_rain'}:
+            risks.append('switch_to_waterproof_chelsea_boots_60s')
+        if duration_hours >= 6 and category == 'bottom':
+            risks.append('long_sitting_knee_bulge')
+
+        candidates.append({
+            'rank': 0,
+            'score': score,
+            'confidence': max(round(min(0.95, score / 100 + 0.12), 2), 0.45),
+            'items': [{
+                'item_id': item_id,
+                'category': category,
+                'name': item_id or 'unknown',
+                'rationale': f'硬约束检查通过，{category or "未知品类"} 适配当前场景',
+                'risk_flags': risks,
+                'score': score,
+                'hard_constraint_penalties': penalties,
+            }],
+            'rationale': '基于衣橱图谱动态生成，硬约束优先。',
+            'risk_flags': risks,
+            'alternatives': {},
+            'switch_options': [],
+        })
+
+    candidates.sort(key=lambda c: (-c['score'], -c['confidence']))
+    for rank, c in enumerate(candidates, 1):
+        c['rank'] = rank
+
+    top_candidates = candidates[:max(1, top_rank)]
+    for candidate in top_candidates:
+        candidate['switch_options'] = [
+            {
+                'rank': other['rank'],
+                'score': other['score'],
+                'name': other['items'][0]['name'],
+                'rationale': other['rationale'],
+                'risk_flags': other['risk_flags'],
+                'delta_reason': None,
+            }
+            for other in top_candidates
+            if other['rank'] != candidate['rank'] and other['score'] >= 65
+        ]
+    return top_candidates
+
+
 @router.post("/outfit", response_model=OutfitResponse)
 def recommend_outfit(payload: OutfitRequest):
     active_rules = _evaluate_hard_constraints(payload)
-    candidates = _build_example_candidates(active_rules, _parse_weather(payload), payload.constraints or {}, top_rank=3)
+    candidates = _build_candidates_from_wardrobe(
+        active_rules, _parse_weather(payload), payload.constraints or {}, top_rank=3, user_id=payload.user_id
+    )
     record = store.record_decision(payload.user_id, {
         "request": payload.model_dump(),
         "active_rules": [getattr(rule, "name", str(rule)) for rule in active_rules],

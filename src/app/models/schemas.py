@@ -6,11 +6,11 @@ class Item(BaseModel):
     user_id: str
     item_id: str
     category: str
-    style: Optional[str]
-    season: Optional[str]
-    occasion: Optional[str]
+    style: Optional[str] = None
+    season: Optional[str] = None
+    occasion: Optional[str] = None
     color: str
-    material: Optional[str]
+    material: Optional[str] = None
     attributes: Dict[str, Any] = Field(default_factory=dict)
     price: Optional[float] = None
 
@@ -21,7 +21,7 @@ class Relationship(BaseModel):
     to_item_id: str
     relation_type: str
     score: float = Field(ge=0.0, le=1.0)
-    context: Optional[str]
+    context: Optional[str] = None
     times_worn_together: int = 0
     user_rating: float = Field(ge=0.0, le=5.0, default=0.0)
 
@@ -36,7 +36,7 @@ class OutfitRequest(BaseModel):
 
 
 class OutfitItem(BaseModel):
-    item_id: Optional[str]
+    item_id: Optional[str] = None
     category: str
     name: str
     rationale: str
@@ -78,9 +78,9 @@ class ROIResponse(BaseModel):
 class BodyFeedbackRequest(BaseModel):
     user_id: str
     item_id: str
-    fit_feedback: Optional[str]
-    visual_comfort: Optional[str]
-    occasion: Optional[str]
+    fit_feedback: Optional[str] = None
+    visual_comfort: Optional[str] = None
+    occasion: Optional[str] = None
 
 
 class UpdatedProfile(BaseModel):
