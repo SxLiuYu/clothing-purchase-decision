@@ -1,27 +1,22 @@
-# Python
+﻿# Python
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 *.egg-info/
 
-# Temporary project artifacts
-pydebug.txt
-module_c_backup.txt
-module_c_current.txt
-patch_*.py
-patch_*.diff
-contentA.md
-contentB.md
-contentC.md
-check_*.py
-base_v2_backup.md
+# Environment
+.venv/
+venv/
+env/
+.env
 
 # IDE
 .idea/
 .vscode/
 
-# Keep gitignore tracked
-!.gitignore
+# Agnes memories
 .agnes/
 
+# Keep gitignore tracked
+!.gitignore

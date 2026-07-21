@@ -1,13 +1,13 @@
 ﻿from fastapi import FastAPI
-from app.routes import outfits, roi, body, wardrobe
+from app.routes import outfits, roi, body, wardrobe, inspiration
 
 app = FastAPI(title="Clothing Purchase Decision")
 
+app.include_router(inspiration.router, prefix="/api/v3/inspiration", tags=["inspiration"])
 app.include_router(wardrobe.router, prefix="/api/v3/wardrobe", tags=["wardrobe"])
 app.include_router(outfits.router, prefix="/api/v3/decisions", tags=["decisions"])
 app.include_router(roi.router, prefix="/api/v3/shop", tags=["shop"])
 app.include_router(body.router, prefix="/api/v3/body", tags=["body"])
-
 
 @app.get("/health")
 def health():

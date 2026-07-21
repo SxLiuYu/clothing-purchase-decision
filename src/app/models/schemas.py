@@ -6,11 +6,11 @@ class Item(BaseModel):
     user_id: str
     item_id: str
     category: str
-    style: Optional[str]
-    season: Optional[str]
-    occasion: Optional[str]
+    style: Optional[str] = None
+    season: Optional[str] = None
+    occasion: Optional[str] = None
     color: str
-    material: Optional[str]
+    material: Optional[str] = None
     attributes: Dict[str, Any] = Field(default_factory=dict)
     price: Optional[float] = None
 
@@ -21,7 +21,7 @@ class Relationship(BaseModel):
     to_item_id: str
     relation_type: str
     score: float = Field(ge=0.0, le=1.0)
-    context: Optional[str]
+    context: Optional[str] = None
     times_worn_together: int = 0
     user_rating: float = Field(ge=0.0, le=5.0, default=0.0)
 
@@ -36,7 +36,7 @@ class OutfitRequest(BaseModel):
 
 
 class OutfitItem(BaseModel):
-    item_id: Optional[str]
+    item_id: Optional[str] = None
     category: str
     name: str
     rationale: str
@@ -78,11 +78,48 @@ class ROIResponse(BaseModel):
 class BodyFeedbackRequest(BaseModel):
     user_id: str
     item_id: str
-    fit_feedback: Optional[str]
-    visual_comfort: Optional[str]
-    occasion: Optional[str]
+    fit_feedback: Optional[str] = None
+    visual_comfort: Optional[str] = None
+    occasion: Optional[str] = None
 
 
 class UpdatedProfile(BaseModel):
     sensitive_areas: List[str] = Field(default_factory=list)
     fit_preference: Dict[str, str] = Field(default_factory=dict)
+
+
+class BodyProfile(BaseModel):
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    body_shape: Optional[str] = None
+    shoulder_width: Optional[str] = None
+    waist_circumference: Optional[float] = None
+    hip_circumference: Optional[float] = None
+    preferred_fit: Optional[str] = None
+
+
+class InspirationRequest(BaseModel):
+    user_id: str
+    body_profile: BodyProfile
+    occasion: str
+    style: Optional[str] = None
+    color_preference: Optional[List[str]] = None
+    season: Optional[str] = None
+
+
+class InspirationItem(BaseModel):
+    source: str
+    image_url: str
+    thumbnail_url: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    body_shape_match: Optional[str] = None
+    style_tags: List[str] = Field(default_factory=list)
+    url: str
+
+
+class InspirationResponse(BaseModel):
+    request_id: str
+    matches: List[InspirationItem]
+    total_found: int
+    note: str

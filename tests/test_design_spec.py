@@ -1,11 +1,11 @@
-﻿from pathlib import Path
+from pathlib import Path
 import re
 import hashlib
 import pytest
 
-DOC = Path('设计方案_v3_superpowers.md')
-HYBRID = Path('设计方案_v3_hybrid.md')
-USER_TESTS = Path('v3_superpower_user_tests.md')
+DOC = Path('docs/design/设计方案_v3_superpowers.md')
+HYBRID = Path('docs/design/设计方案_v3_hybrid.md')
+USER_TESTS = Path('docs/evaluations/v3_superpower_user_tests.md')
 
 def read_md(path):
     return path.read_text(encoding='utf-8')

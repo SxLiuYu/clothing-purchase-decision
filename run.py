@@ -1,7 +1,9 @@
-from src.app.main import app
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from app.main import app
 
 if __name__ == '__main__':
     import uvicorn
-
-    uvicorn.run('src.app.main:app', host='0.0.0.0', port=8000, reload=True)
-
+    uvicorn.run('app.main:app', host='0.0.0.0', port=8000, reload=True)
