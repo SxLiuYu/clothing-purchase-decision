@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from app.models.schemas import OutfitPlan, OutfitRequest, OutfitResponse, Item
 from app.services.store import store
 from app.services.feedback_analyzer import fit_preference_engine
+from app.services.rationale_generator import rationale_generator
 
 router = APIRouter()
 
@@ -244,6 +245,11 @@ def _build_candidates_from_wardrobe(
         c['rank'] = rank
 
     top_candidates = candidates[:max(1, top_rank)]
+    # 为 top 候选生成动态可解释理由链
+    for candidate in top_candidates:
+        candidate['rationale'] = rationale_generator.generate_rationale(
+            candidate, weather, active_rules, body_profile, constraints
+        )
     for candidate in top_candidates:
         candidate['switch_options'] = [
             {

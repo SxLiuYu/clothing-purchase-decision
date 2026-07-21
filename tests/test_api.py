@@ -207,3 +207,30 @@ def test_body_feedback_affects_outfit_score():
     assert resp.status_code == 200
     # 验证反馈后评分不为空
     assert resp.json()['outfits']
+
+
+def test_rationale_is_dynamic():
+    """验证 rationale 不是硬编码，而是根据上下文动态生成"""
+    user_id = 'user-rationale'
+    # 录入体态档案
+    client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'height': 175, 'weight': 72,
+        'fit_preference': 'slim',
+    })
+    # 录入衣物
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id, 'item_id': 'rat-coat', 'category': 'outwear',
+        'color': 'black', 'style': 'formal', 'season': 'winter', 'occasion': 'formal',
+    })
+    # 请求穿搭
+    resp = client.post('/api/v3/decisions/outfit', json={
+        'user_id': user_id, 'occasion': 'formal',
+        'datetime': '2026-07-21T08:00:00+08:00',
+        'weather': {'temperature_c': 5, 'condition': 'rain'},
+        'constraints': {'duration_hours': 8},
+    })
+    assert resp.status_code == 200
+    rationale = resp.json()['outfits'][0]['rationale']
+    # 验证包含动态生成的内容
+    assert '场景适配' in rationale or '硬约束' in rationale or '体态' in rationale
+    assert '5°C' in rationale or '雨天' in rationale or '正式' in rationale
