@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 from app.models.schemas import OutfitPlan, OutfitRequest, OutfitResponse, Item
 from app.services.store import store
+from app.services.feedback_analyzer import fit_preference_engine
 
 router = APIRouter()
 
@@ -186,6 +187,8 @@ def _build_candidates_from_wardrobe(
     if not nodes:
         return _build_example_candidates(active_rules, weather, constraints, top_rank)
 
+    body_profile = user.get('body_profile', {})
+    sensitive_areas = body_profile.get('sensitive_areas', [])
     duration_hours = int(weather.get('duration_hours', 0) or 0)
     condition = str(weather.get('condition', '')).lower()
     candidates = []
@@ -198,6 +201,18 @@ def _build_candidates_from_wardrobe(
         # 基础分 70 + 硬约束调整，上限 92
         score = round(min(92.0, 70.0 + category_score * 0.3), 1)
         score = max(score, 10.0)
+
+        # 体态反馈评分调整
+        fit_adjustment = fit_preference_engine.get_fit_score_adjustment(
+            user_id, category, attrs.get('fit_feedback', 'comfortable')
+        )
+        score = max(score + fit_adjustment, 10.0)
+
+        # 敏感区域品类惩罚
+        if sensitive_areas:
+            for area in sensitive_areas:
+                if area in {'tight_waist', 'exposed_belly', 'too_tight'}:
+                    score = max(score - 5.0, 10.0)
 
         risks: List[str] = []
         if condition in {'rain', 'heavy rain', 'light_rain'}:

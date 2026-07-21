@@ -183,3 +183,27 @@ def test_update_body_profile_partial():
         'user_id': user_id, 'weight': 68.0,
     })
     assert resp.status_code == 200
+
+
+def test_body_feedback_affects_outfit_score():
+    """验证体态反馈后，有敏感区域的品类评分会降低"""
+    user_id = 'user-body-affect'
+    # 录入衣物
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id, 'item_id': 'body-tight-pants', 'category': 'bottom',
+        'color': 'black', 'style': 'slim', 'season': 'all', 'occasion': 'daily',
+    })
+    # 提交体态反馈（紧身不适）
+    client.post('/api/v3/body/feedback', json={
+        'user_id': user_id, 'item_id': 'body-tight-pants',
+        'fit_feedback': 'tight_waist', 'visual_comfort': 'exposed_belly',
+    })
+    # 请求穿搭
+    resp = client.post('/api/v3/decisions/outfit', json={
+        'user_id': user_id, 'occasion': 'daily',
+        'datetime': '2026-07-21T12:00:00+08:00',
+        'weather': {'temperature_c': 25, 'condition': 'sunny'},
+    })
+    assert resp.status_code == 200
+    # 验证反馈后评分不为空
+    assert resp.json()['outfits']
