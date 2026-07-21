@@ -1,12 +1,12 @@
 ﻿# Superpower 修复验证测试
 
 import pytest
-from src.app.services.feedback_analyzer import (
+from app.services.feedback_analyzer import (
     ContinuousFeedbackAnalyzer,
     DynamicFitPreferenceEngine
 )
-from src.app.services.combination_calculator import CombinationGapCalculator
-from src.app.services.multi_objective_optimizer import MultiObjectiveOptimizer, ObjectiveType
+from app.services.combination_calculator import CombinationGapCalculator
+from app.services.multi_objective_optimizer import MultiObjectiveOptimizer, ObjectiveType
 
 
 class TestSuperpower2ContinuousFeedback:

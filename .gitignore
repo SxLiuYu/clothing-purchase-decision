@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 .pytest_cache/
 *.egg-info/
+.venv/
 
 # Temporary project artifacts
 pydebug.txt
@@ -16,6 +17,9 @@ contentB.md
 contentC.md
 check_*.py
 base_v2_backup.md
+
+# OS
+.DS_Store
 
 # IDE
 .idea/
