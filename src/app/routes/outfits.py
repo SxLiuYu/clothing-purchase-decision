@@ -176,7 +176,7 @@ def recommend_outfit(payload: OutfitRequest):
     active_rules = _evaluate_hard_constraints(payload)
     candidates = _build_example_candidates(active_rules, _parse_weather(payload), payload.constraints or {}, top_rank=3)
     record = store.record_decision(payload.user_id, {
-        "request": payload.dict(),
+        "request": payload.model_dump(),
         "active_rules": [getattr(rule, "name", str(rule)) for rule in active_rules],
         "candidates": candidates,
     })

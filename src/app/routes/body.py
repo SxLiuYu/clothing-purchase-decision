@@ -7,9 +7,9 @@ router = APIRouter()
 
 @router.post('/feedback', response_model=dict)
 def update_body_profile(payload: BodyFeedbackRequest):
-    updated = store.apply_feedback(payload.user_id, payload.dict())
+    updated = store.apply_feedback(payload.user_id, payload.model_dump())
     return {
         'decision_id': f"feedback:{payload.user_id}:{payload.item_id}",
-        'updated_profile': UpdatedProfile(**updated).dict(),
+        'updated_profile': UpdatedProfile(**updated).model_dump(),
         'note': 'feedback loop marked; more advanced inference requires multimodal model integration',
     }

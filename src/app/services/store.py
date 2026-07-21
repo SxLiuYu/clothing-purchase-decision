@@ -25,13 +25,13 @@ class MemoryStore:
         return self.users[user_id]
 
     def add_item(self, item: Item) -> Dict:
-        record = item.dict()
+        record = item.model_dump()
         self.items[item.item_id] = record
         self._index_item(item.user_id, record)
         return record
 
     def add_relationship(self, relationship: Relationship) -> Dict:
-        record = relationship.dict()
+        record = relationship.model_dump()
         self.relationships[relationship.from_item_id].append(record)
         return record
 

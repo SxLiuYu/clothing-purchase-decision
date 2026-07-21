@@ -37,7 +37,7 @@ def analyze_roi(payload: ROIRequest):
             {'item_category': 'scene_matching_accessory', 'reason': 'close_coverage_gap'},
         ]
     record = store.record_roi(payload.user_id, {
-        'request': payload.dict(),
+        'request': payload.model_dump(),
         'roi_score': roi_score,
         'recommendation': recommendation,
     })
