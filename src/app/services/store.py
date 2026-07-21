@@ -176,7 +176,7 @@ class SQLiteStore:
     def set_body_profile(self, user_id: str, payload: Dict) -> Dict:
         user = self.get_or_create_user(user_id)
         profile = user['body_profile']
-        for key in ['height', 'weight', 'shoulder_width', 'waistline', 'leg_type', 'body_shape']:
+        for key in ['height', 'weight', 'shoulder_width', 'waistline', 'leg_type', 'body_shape', 'face_shape', 'skin_tone']:
             if key in payload and payload[key] is not None:
                 profile[key] = payload[key]
         if payload.get('fit_preference') is not None:

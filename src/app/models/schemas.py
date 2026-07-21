@@ -92,6 +92,8 @@ class BodyProfileRequest(BaseModel):
     leg_type: Optional[str] = None
     body_shape: Optional[str] = None
     fit_preference: Optional[str] = None
+    face_shape: Optional[str] = None
+    skin_tone: Optional[str] = None
 
 
 class UpdatedProfile(BaseModel):
