@@ -202,7 +202,7 @@ class MultiObjectiveOptimizer:
     
     def _calculate_body_fit_score(self, candidate: Dict, user_profile: Dict) -> float:
         """计算身体适配度"""
-        fit_preferences = user_profile.get('fit_preferences', {})
+        fit_preferences = user_profile.get('fit_preference', {})
         sensitive_areas = set(user_profile.get('sensitive_areas', []))
         
         items = candidate.get('items', [])

@@ -56,7 +56,7 @@ class TestSuperpower2ContinuousFeedback:
         
         body_profile = {
             'weight': 75,
-            'fit_preferences': {'waist': 'slim'}
+            'fit_preference': {'waist': 'slim'}
         }
         
         result = analyzer.trigger_profile_recalibration(
