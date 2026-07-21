@@ -1,9 +1,10 @@
 ﻿from uuid import uuid4
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from app.models.schemas import Item, Relationship, WardrobeSearchRequest
 from app.services.store import store
+from app.services.image_storage import storage as image_storage
 
 router = APIRouter()
 
@@ -60,4 +61,16 @@ def search_wardrobe(payload: WardrobeSearchRequest):
         'user_id': payload.user_id,
         'count': len(results),
         'items': results[:payload.limit],
+    }
+
+
+@router.post('/users/{user_id}/upload')
+def upload_image(user_id: str, file: UploadFile = File(...)):
+    contents = file.file.read()
+    url = image_storage.upload(contents, file.filename or 'unknown', file.content_type or 'image/jpeg')
+    return {
+        'user_id': user_id,
+        'filename': file.filename,
+        'url': url,
+        'size': len(contents),
     }
