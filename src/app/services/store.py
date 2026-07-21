@@ -123,6 +123,9 @@ class SQLiteStore:
                     'style': record.get('style'),
                     'season': record.get('season'),
                     'occasion': record.get('occasion'),
+                    'color': record.get('color'),
+                    'material': record.get('material'),
+                    'price': record.get('price'),
                     'score': record.get('score', 0),
                 },
             })

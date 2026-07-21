@@ -99,3 +99,14 @@ class BodyProfileRequest(BaseModel):
 class UpdatedProfile(BaseModel):
     sensitive_areas: List[str] = Field(default_factory=list)
     fit_preference: Dict[str, str] = Field(default_factory=dict)
+
+
+class WardrobeSearchRequest(BaseModel):
+    user_id: str
+    category: Optional[str] = None
+    color: Optional[str] = None
+    style: Optional[str] = None
+    season: Optional[str] = None
+    occasion: Optional[str] = None
+    keyword: Optional[str] = None
+    limit: int = Field(default=50, ge=1, le=200)
