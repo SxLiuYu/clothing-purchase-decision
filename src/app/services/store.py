@@ -67,6 +67,22 @@ class MemoryStore:
         profile['fit_preference'] = fit_preference  # Changed to fit_preference
         return profile
 
+    def set_body_profile(self, user_id: str, payload: Dict) -> Dict:
+        user = self.get_or_create_user(user_id)
+        profile = user.setdefault('body_profile', {})
+        for key in ['height', 'weight', 'shoulder_width', 'waistline', 'leg_type', 'body_shape']:
+            if key in payload and payload[key] is not None:
+                profile[key] = payload[key]
+        # fit_preference 在 body_profile 中以 dict 形式存储（与 apply_feedback 一致）
+        if payload.get('fit_preference') is not None:
+            fit_pref = dict(profile.get('fit_preference', {}))
+            fit_pref['global'] = payload['fit_preference']
+            profile['fit_preference'] = fit_pref
+        if payload.get('weight') is not None:
+            profile['recorded_weight'] = payload['weight']
+            profile['weight_recorded_at'] = datetime.now(timezone.utc).isoformat()
+        return profile
+
     def _index_item(self, user_id: str, record: Dict) -> None:
         user = self.get_or_create_user(user_id)
         if record['item_id'] not in [node['item_id'] for node in user['wardrobe_graph'].get('nodes', [])]:

@@ -83,6 +83,17 @@ class BodyFeedbackRequest(BaseModel):
     occasion: Optional[str] = None
 
 
+class BodyProfileRequest(BaseModel):
+    user_id: str
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    shoulder_width: Optional[float] = None
+    waistline: Optional[float] = None
+    leg_type: Optional[str] = None
+    body_shape: Optional[str] = None
+    fit_preference: Optional[str] = None
+
+
 class UpdatedProfile(BaseModel):
     sensitive_areas: List[str] = Field(default_factory=list)
     fit_preference: Dict[str, str] = Field(default_factory=dict)

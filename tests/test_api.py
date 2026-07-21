@@ -151,3 +151,35 @@ def test_feedback_affects_body_profile_twice():
         'occasion': 'daily',
     }).json()
     assert 'comfortable' in second['updated_profile']['fit_preference'].values()
+
+
+def test_set_body_profile():
+    user_id = 'user-profile-1'
+    response = client.post('/api/v3/body/profile', json={
+        'user_id': user_id,
+        'height': 175.0,
+        'weight': 72.0,
+        'shoulder_width': 45.0,
+        'waistline': 80.0,
+        'leg_type': 'straight',
+        'body_shape': 'rectangle',
+        'fit_preference': 'slim',
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert 'decision_id' in body
+    assert 'updated_profile' in body
+    assert body['updated_profile']['fit_preference'] == {'global': 'slim'}
+
+
+def test_update_body_profile_partial():
+    """只更新部分字段"""
+    user_id = 'user-profile-2'
+    client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'height': 170.0, 'weight': 65.0,
+        'body_shape': 'pear', 'fit_preference': 'loose',
+    })
+    resp = client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'weight': 68.0,
+    })
+    assert resp.status_code == 200
