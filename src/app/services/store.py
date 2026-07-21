@@ -1,6 +1,6 @@
 ﻿# store.py - fixed to match UpdatedProfile schema
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from app.models.schemas import Item, Relationship
@@ -38,7 +38,7 @@ class MemoryStore:
     def record_decision(self, user_id: str, payload: Dict) -> Dict:
         record = {
             'user_id': user_id,
-            'generated_at': datetime.utcnow().isoformat() + 'Z',
+            'generated_at': datetime.now(timezone.utc).isoformat() + 'Z',
             'payload': payload,
         }
         self.decisions.append(record)
@@ -47,7 +47,7 @@ class MemoryStore:
     def record_roi(self, user_id: str, payload: Dict) -> Dict:
         record = {
             'user_id': user_id,
-            'generated_at': datetime.utcnow().isoformat() + 'Z',
+            'generated_at': datetime.now(timezone.utc).isoformat() + 'Z',
             'payload': payload,
         }
         self.roi_analyses.append(record)
