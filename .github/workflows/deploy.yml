@@ -21,35 +21,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run test_api.py and capture output
+      - name: Run tests
+        id: test
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
           set +e
-          python -m pytest tests/test_api.py -v --tb=long --no-header -rA 2>&1 | tee test_api_output.txt
-          echo "EXIT_CODE=${PIPESTATUS[0]}" >> $GITHUB_ENV
+          python -m pytest -v --tb=long --no-header 2>&1 | tee /tmp/test_output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
 
-      - name: Upload test output as commit
+      - name: Upload test output to pastebin
         if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b ci-test-output
-          git add -f test_api_output.txt
-          git commit -m "ci: test_api.py output (auto-generated)" --allow-empty
-          git push -f origin ci-test-output
-
-      - name: Package versions
-        if: always()
-        run: |
-          python --version
-          pip list 2>/dev/null | grep -iE "fastapi|pydantic|httpx|pytest|anyio|starlette|uvicorn"
+          cat /tmp/test_output.txt | curl -s -X POST --data-binary @- https://paste.rs/ 2>/dev/null || echo "pastebin unavailable"
+          echo ""
+          echo "Test exit code: ${{ steps.test.outputs.exit_code }}"
 
       - name: Fail if tests failed
-        if: env.EXIT_CODE != '0'
+        if: steps.test.outputs.exit_code != '0'
         run: |
-          echo "Tests failed with exit code ${{ env.EXIT_CODE }}"
+          echo "Tests failed with exit code ${{ steps.test.outputs.exit_code }}"
           exit 1
 
   deploy:
