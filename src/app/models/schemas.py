@@ -83,6 +83,19 @@ class BodyFeedbackRequest(BaseModel):
     occasion: Optional[str] = None
 
 
+class BodyProfileRequest(BaseModel):
+    user_id: str
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    shoulder_width: Optional[float] = None
+    waistline: Optional[float] = None
+    leg_type: Optional[str] = None
+    body_shape: Optional[str] = None
+    fit_preference: Optional[str] = None
+    face_shape: Optional[str] = None
+    skin_tone: Optional[str] = None
+
+
 class UpdatedProfile(BaseModel):
     sensitive_areas: List[str] = Field(default_factory=list)
     fit_preference: Dict[str, str] = Field(default_factory=dict)
@@ -123,3 +136,14 @@ class InspirationResponse(BaseModel):
     matches: List[InspirationItem]
     total_found: int
     note: str
+
+
+class WardrobeSearchRequest(BaseModel):
+    user_id: str
+    category: Optional[str] = None
+    color: Optional[str] = None
+    style: Optional[str] = None
+    season: Optional[str] = None
+    occasion: Optional[str] = None
+    keyword: Optional[str] = None
+    limit: int = Field(default=50, ge=1, le=200)

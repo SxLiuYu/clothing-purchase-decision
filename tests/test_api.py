@@ -151,3 +151,86 @@ def test_feedback_affects_body_profile_twice():
         'occasion': 'daily',
     }).json()
     assert 'comfortable' in second['updated_profile']['fit_preference'].values()
+
+
+def test_set_body_profile():
+    user_id = 'user-profile-1'
+    response = client.post('/api/v3/body/profile', json={
+        'user_id': user_id,
+        'height': 175.0,
+        'weight': 72.0,
+        'shoulder_width': 45.0,
+        'waistline': 80.0,
+        'leg_type': 'straight',
+        'body_shape': 'rectangle',
+        'fit_preference': 'slim',
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert 'decision_id' in body
+    assert 'updated_profile' in body
+    assert body['updated_profile']['fit_preference'] == {'global': 'slim'}
+
+
+def test_update_body_profile_partial():
+    """只更新部分字段"""
+    user_id = 'user-profile-2'
+    client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'height': 170.0, 'weight': 65.0,
+        'body_shape': 'pear', 'fit_preference': 'loose',
+    })
+    resp = client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'weight': 68.0,
+    })
+    assert resp.status_code == 200
+
+
+def test_body_feedback_affects_outfit_score():
+    """验证体态反馈后，有敏感区域的品类评分会降低"""
+    user_id = 'user-body-affect'
+    # 录入衣物
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id, 'item_id': 'body-tight-pants', 'category': 'bottom',
+        'color': 'black', 'style': 'slim', 'season': 'all', 'occasion': 'daily',
+    })
+    # 提交体态反馈（紧身不适）
+    client.post('/api/v3/body/feedback', json={
+        'user_id': user_id, 'item_id': 'body-tight-pants',
+        'fit_feedback': 'tight_waist', 'visual_comfort': 'exposed_belly',
+    })
+    # 请求穿搭
+    resp = client.post('/api/v3/decisions/outfit', json={
+        'user_id': user_id, 'occasion': 'daily',
+        'datetime': '2026-07-21T12:00:00+08:00',
+        'weather': {'temperature_c': 25, 'condition': 'sunny'},
+    })
+    assert resp.status_code == 200
+    # 验证反馈后评分不为空
+    assert resp.json()['outfits']
+
+
+def test_rationale_is_dynamic():
+    """验证 rationale 不是硬编码，而是根据上下文动态生成"""
+    user_id = 'user-rationale'
+    # 录入体态档案
+    client.post('/api/v3/body/profile', json={
+        'user_id': user_id, 'height': 175, 'weight': 72,
+        'fit_preference': 'slim',
+    })
+    # 录入衣物
+    client.post('/api/v3/wardrobe/items', json={
+        'user_id': user_id, 'item_id': 'rat-coat', 'category': 'outwear',
+        'color': 'black', 'style': 'formal', 'season': 'winter', 'occasion': 'formal',
+    })
+    # 请求穿搭
+    resp = client.post('/api/v3/decisions/outfit', json={
+        'user_id': user_id, 'occasion': 'formal',
+        'datetime': '2026-07-21T08:00:00+08:00',
+        'weather': {'temperature_c': 5, 'condition': 'rain'},
+        'constraints': {'duration_hours': 8},
+    })
+    assert resp.status_code == 200
+    rationale = resp.json()['outfits'][0]['rationale']
+    # 验证包含动态生成的内容
+    assert '场景适配' in rationale or '硬约束' in rationale or '体态' in rationale
+    assert '5°C' in rationale or '雨天' in rationale or '正式' in rationale

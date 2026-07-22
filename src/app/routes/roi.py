@@ -1,10 +1,20 @@
-﻿from typing import Dict, List
+from typing import Dict, List
+
 from app.models.schemas import ROIRequest, ROIResponse
 from app.services.store import store
 from app.services.combination_calculator import combination_calculator
+from app.services.similarity import engine as similarity_engine
 from fastapi import APIRouter
 
 router = APIRouter()
+
+_ATTRIBUTE_KEYS = ['category', 'style', 'season', 'color', 'material']
+
+
+def _to_attrs(node: Dict) -> Dict:
+    """将衣橱节点转换为 similarity_engine 可用的属性字典"""
+    attrs = node.get('attributes', {})
+    return {k: attrs.get(k) for k in _ATTRIBUTE_KEYS if attrs.get(k)}
 
 
 def _similarity_verdict(score: float):
@@ -17,7 +27,7 @@ def _similarity_verdict(score: float):
 
 def _extract_wardrobe_items(user: Dict) -> List[Dict]:
     """从用户衣橱图谱提取完整物品列表"""
-    nodes = user.get('wardrobe_graph', {}).get('nodes', [])
+    nodes = user.get('wardrobe_graph', {}).get('nodes', []) if user.get('wardrobe_graph') else []
     # 从 store.items 回补完整属性
     items = []
     for node in nodes:
@@ -53,14 +63,23 @@ def _get_scenario_coverage(user: Dict) -> Dict[str, float]:
 def analyze_roi(payload: ROIRequest):
     user = store.get_or_create_user(payload.user_id)
     wardrobe_items = _extract_wardrobe_items(user)
+    nodes = user.get('wardrobe_graph', {}).get('nodes', []) if user.get('wardrobe_graph') else []
     new_item = payload.new_item or {}
 
-    # 1. 相似度（保留原逻辑，后续可接入 CLIP）
-    candidate_score = float(new_item.get('score', 0.75))
+    # 1. 相似度（通过 similarity_engine 计算，后续可接入 CLIP）
+    new_attrs = {k: new_item.get(k) for k in _ATTRIBUTE_KEYS if new_item.get(k)}
     similarity_items = []
     conflicts = []
-    if wardrobe_items and candidate_score >= 0.9:
-        conflicts = [{'existing_item': wardrobe_items[0].get('item_id', 'unknown'), 'reason': 'redundant'}]
+    if new_attrs and nodes:
+        for n in nodes:
+            sim = similarity_engine.calculate_similarity(new_attrs, _to_attrs(n))
+            similarity_items.append({'item_id': n.get('item_id') or 'unknown', 'score': round(sim, 2)})
+            if sim >= 0.9:
+                conflicts.append({'existing_item': n.get('item_id') or 'unknown', 'reason': 'redundant', 'similarity': str(round(sim, 2))})
+        similarity_items.sort(key=lambda x: -x['score'])
+        candidate_score = similarity_items[0]['score'] if similarity_items else float(new_item.get('score', 0.75))
+    else:
+        candidate_score = float(new_item.get('score', 0.75))
 
     # 2. 调用 CombinationGapCalculator 计算 ROI
     idle_items = _extract_idle_items(user)
@@ -89,13 +108,15 @@ def analyze_roi(payload: ROIRequest):
         'recommendation': roi_result['recommendation'],
     })
 
+    max_similarity = similarity_items[0]['score'] if similarity_items else 0.0
+
     return ROIResponse(
         roi_score=roi_result['roi_score'],
         recommendation=roi_result['recommendation'],
         similarity={
-            'items': [{'item_id': wardrobe_items[0].get('item_id', 'unknown'), 'score': round(candidate_score, 2)}] if wardrobe_items else [],
-            'verdict': _similarity_verdict(candidate_score),
-            'verification': 'duplicate check ok' if candidate_score >= 0.9 else 'new combination likely',
+            'items': similarity_items[:5],
+            'verdict': _similarity_verdict(max_similarity),
+            'verification': 'duplicate check ok' if max_similarity >= 0.9 else 'new combination likely',
         },
         combination_gap={
             'new_combinations': roi_result['details']['new_combinations'],

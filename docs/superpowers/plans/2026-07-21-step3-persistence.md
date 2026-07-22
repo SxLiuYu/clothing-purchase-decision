@@ -1,11 +1,62 @@
-# store.py - SQLite-backed persistent store
-# Replaces MemoryStore with zero-dependency persistence.
-# DB path from STORE_DB_PATH env var, defaults to :memory:.
+# 持久化存储 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans
+
+**Goal:** 将 MemoryStore 替换为 SQLite 持久化存储，重启数据不丢失
+
+**Architecture:** 使用 Python 内置 `sqlite3` 模块（零依赖），保持与 MemoryStore 完全相同的 API 接口，所有 104 项测试通过
+
+**Tech Stack:** Python 3.14, sqlite3 (stdlib), FastAPI
+
+## Global Constraints
+
+- 所有原有测试必须保持通过
+- `store` 的公有接口不变（`get_or_create_user`, `add_item`, `add_relationship`, `record_decision`, `record_roi`, `apply_feedback`, `set_body_profile`）
+- 返回数据结构与 MemoryStore 一致（Dict）
+- 数据库路径由环境变量 `STORE_DB_PATH` 控制，默认 `:memory:`
+
+---
+
+### Task 1: 实现 SQLiteStore
+
+**Files:**
+- Rewrite: `src/app/services/store.py`（MemoryStore → SQLiteStore）
+- Modify: 无（接口不变，调用方无需修改）
+- Test: 所有现有测试（104 项，接口不变）
+
+**Interfaces:**
+- 完全相同：`store.get_or_create_user(user_id) -> Dict`
+- 完全相同：`store.add_item(item: Item) -> Dict`
+- 完全相同：`store.add_relationship(relationship: Relationship) -> Dict`
+- 完全相同：`store.record_decision(user_id, payload) -> Dict`
+- 完全相同：`store.record_roi(user_id, payload) -> Dict`
+- 完全相同：`store.apply_feedback(user_id, payload) -> Dict`
+- 完全相同：`store.set_body_profile(user_id, payload) -> Dict`
+
+- [ ] **Step 1: 验证当前测试全部通过**
+
+```bash
+cd /Users/sxliuyu/orca/clothing-purchase-decision
+source .venv/bin/activate
+python -m pytest -q
+```
+
+Expected: `104 passed`
+
+- [ ] **Step 2: 重写 store.py 为 SQLiteStore**
+
+```python
+"""
+SQLite-backed persistent store.
+Replaces MemoryStore with zero-dependency persistence.
+DB path from STORE_DB_PATH env var, defaults to :memory:.
+"""
 import json
 import os
 import sqlite3
+from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from app.models.schemas import Item, Relationship
 
@@ -123,9 +174,6 @@ class SQLiteStore:
                     'style': record.get('style'),
                     'season': record.get('season'),
                     'occasion': record.get('occasion'),
-                    'color': record.get('color'),
-                    'material': record.get('material'),
-                    'price': record.get('price'),
                     'score': record.get('score', 0),
                 },
             })
@@ -144,22 +192,30 @@ class SQLiteStore:
         return record
 
     def record_decision(self, user_id: str, payload: Dict) -> Dict:
-        generated_at = datetime.now(timezone.utc).isoformat() + 'Z'
+        record = {
+            'user_id': user_id,
+            'generated_at': datetime.now(timezone.utc).isoformat() + 'Z',
+            'payload': payload,
+        }
         self._conn.execute(
             "INSERT INTO decisions (user_id, generated_at, payload) VALUES (?, ?, ?)",
-            (user_id, generated_at, json.dumps(payload))
+            (user_id, record['generated_at'], json.dumps(payload))
         )
         self._conn.commit()
-        return {'user_id': user_id, 'generated_at': generated_at, 'payload': payload}
+        return record
 
     def record_roi(self, user_id: str, payload: Dict) -> Dict:
-        generated_at = datetime.now(timezone.utc).isoformat() + 'Z'
+        record = {
+            'user_id': user_id,
+            'generated_at': datetime.now(timezone.utc).isoformat() + 'Z',
+            'payload': payload,
+        }
         self._conn.execute(
             "INSERT INTO roi_analyses (user_id, generated_at, payload) VALUES (?, ?, ?)",
-            (user_id, generated_at, json.dumps(payload))
+            (user_id, record['generated_at'], json.dumps(payload))
         )
         self._conn.commit()
-        return {'user_id': user_id, 'generated_at': generated_at, 'payload': payload}
+        return record
 
     def apply_feedback(self, user_id: str, payload: Dict) -> Dict:
         user = self.get_or_create_user(user_id)
@@ -179,7 +235,7 @@ class SQLiteStore:
     def set_body_profile(self, user_id: str, payload: Dict) -> Dict:
         user = self.get_or_create_user(user_id)
         profile = user['body_profile']
-        for key in ['height', 'weight', 'shoulder_width', 'waistline', 'leg_type', 'body_shape', 'face_shape', 'skin_tone']:
+        for key in ['height', 'weight', 'shoulder_width', 'waistline', 'leg_type', 'body_shape']:
             if key in payload and payload[key] is not None:
                 profile[key] = payload[key]
         if payload.get('fit_preference') is not None:
@@ -192,6 +248,63 @@ class SQLiteStore:
         self._save_user(user_id, profile, user['preferences'], user['wardrobe_graph'])
         return profile
 
+    @property
+    def users(self) -> Dict[str, Dict]:
+        """兼容 MemoryStore.users 属性，用于部分测试访问"""
+        cur = self._conn.execute("SELECT user_id FROM users")
+        result = {}
+        for row in cur.fetchall():
+            result[row['user_id']] = self.get_or_create_user(row['user_id'])
+        return result
 
-# 全局实例（默认 :memory:，可通过环境变量 STORE_DB_PATH 覆盖）
+    @property
+    def items(self) -> Dict[str, Dict]:
+        """兼容 MemoryStore.items 属性"""
+        cur = self._conn.execute("SELECT * FROM items")
+        result = {}
+        for row in cur.fetchall():
+            result[row['item_id']] = dict(row)
+        return result
+
+
+# 全局实例（默认 :memory:，可通过环境变量覆盖）
 store = SQLiteStore()
+```
+
+- [ ] **Step 3: 运行测试**
+
+Run: `python -m pytest -q`
+Expected: `104 passed`
+
+- [ ] **Step 4: 验证持久化功能**
+
+```python
+# 测试：写入文件数据库，重启后数据仍在
+import tempfile, os
+from app.services.store import SQLiteStore
+
+tmp = tempfile.mktemp(suffix='.db')
+s = SQLiteStore(tmp)
+s.get_or_create_user('test-persist')
+s.add_item(Item(user_id='test-persist', item_id='p1', category='outwear', color='blue'))
+
+# 重建实例，验证数据保留
+s2 = SQLiteStore(tmp)
+user = s2.get_or_create_user('test-persist')
+assert len(user['wardrobe_graph']['nodes']) == 1
+assert s2.items['p1']['item_id'] == 'p1'
+os.remove(tmp)
+print('持久化验证通过')
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A
+git commit -m "feat: 用 SQLiteStore 替换 MemoryStore，实现持久化存储
+
+- 使用 Python 内置 sqlite3 模块，零额外依赖
+- 保持与 MemoryStore 完全相同的公有接口
+- 数据库路径由 STORE_DB_PATH 环境变量控制，默认 :memory:
+- 全部 104 项测试通过"
+```

@@ -1,31 +1,23 @@
-﻿from fastapi import APIRouter
-from app.models.schemas import BodyFeedbackRequest, UpdatedProfile
+from fastapi import APIRouter
+from app.models.schemas import BodyFeedbackRequest, BodyProfileRequest, UpdatedProfile
 from app.services.store import store
 from app.services.feedback_analyzer import fit_preference_engine
+from datetime import datetime, timezone
 
 router = APIRouter()
 
 
 @router.post('/feedback', response_model=dict)
 def update_body_profile(payload: BodyFeedbackRequest):
-    # 1. 基础反馈记录（保持向后兼容）
-    user = store.get_or_create_user(payload.user_id)
-    profile = user.setdefault('body_profile', {})
-    sensitive_areas = set(profile.get('sensitive_areas', []))
-    fit_preference = dict(profile.get('fit_preference', {}))
-    if payload.fit_feedback:
-        sensitive_areas.add(payload.fit_feedback)
-        fit_preference[payload.item_id or 'global'] = payload.fit_feedback
-    if payload.visual_comfort:
-        sensitive_areas.add(payload.visual_comfort)
-    profile['sensitive_areas'] = sorted(sensitive_areas)
-    profile['fit_preference'] = fit_preference
+    # 1. 基础反馈记录（通过 store 持久化，保持向后兼容）
+    updated = store.apply_feedback(payload.user_id, payload.model_dump())
 
     # 2. 调用 DynamicFitPreferenceEngine 实现连续反馈分析
-    feedback_dict = payload.model_dump()
+    user = store.get_or_create_user(payload.user_id)
+    profile = user.get('body_profile', {})
     engine_result = fit_preference_engine.update_preference(
         user_id=payload.user_id,
-        feedback=feedback_dict,
+        feedback=payload.model_dump(),
         body_profile=profile,
     )
 
@@ -50,4 +42,14 @@ def update_body_profile(payload: BodyFeedbackRequest):
         'weight_update': weight_update,
         'needs_recalibration': engine_result.get('needs_recalibration', False),
         'note': 'feedback loop marked; continuous feedback analyzer engaged',
+    }
+
+
+@router.post('/profile', response_model=dict)
+def set_body_profile(payload: BodyProfileRequest):
+    updated = store.set_body_profile(payload.user_id, payload.model_dump(exclude_none=True))
+    return {
+        'decision_id': f"profile:{payload.user_id}:{datetime.now(timezone.utc).isoformat()}",
+        'updated_profile': UpdatedProfile(**updated).model_dump(),
+        'note': '体态档案已更新，将在下次穿搭推荐中生效',
     }

@@ -3,5 +3,9 @@ uvicorn[standard]
 pydantic>=2.0
 python-dotenv>=1.0
 httpx>=0.24
+
+# dev
 pytest>=7.4
 pytest-asyncio
+markdown
+beautifulsoup4

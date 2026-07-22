@@ -1,9 +1,10 @@
 ﻿from uuid import uuid4
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
-from app.models.schemas import Item, Relationship
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from app.models.schemas import Item, Relationship, WardrobeSearchRequest
 from app.services.store import store
+from app.services.image_storage import storage as image_storage
 
 router = APIRouter()
 
@@ -27,3 +28,49 @@ def add_relationship(payload: Relationship):
         record = store.add_relationship(payload)
         return {"status": "added", "relationship": record}
     raise HTTPException(status_code=404, detail="user not found")
+
+
+@router.post('/search')
+def search_wardrobe(payload: WardrobeSearchRequest):
+    user = store.get_or_create_user(payload.user_id)
+    nodes = user.get('wardrobe_graph', {}).get('nodes', [])
+
+    results = []
+    for node in nodes:
+        attrs = node.get('attributes', {})
+        # 精确匹配
+        if payload.category and attrs.get('category') != payload.category:
+            continue
+        if payload.color and attrs.get('color') != payload.color:
+            continue
+        if payload.style and attrs.get('style') != payload.style:
+            continue
+        if payload.season and attrs.get('season') != payload.season:
+            continue
+        if payload.occasion and attrs.get('occasion') != payload.occasion:
+            continue
+        # 模糊搜索
+        if payload.keyword:
+            kw = payload.keyword.lower()
+            searchable = f"{node.get('item_id', '')} {attrs.get('category', '')} {attrs.get('color', '')} {attrs.get('style', '')}".lower()
+            if kw not in searchable:
+                continue
+        results.append(node)
+
+    return {
+        'user_id': payload.user_id,
+        'count': len(results),
+        'items': results[:payload.limit],
+    }
+
+
+@router.post('/users/{user_id}/upload')
+def upload_image(user_id: str, file: UploadFile = File(...)):
+    contents = file.file.read()
+    url = image_storage.upload(contents, file.filename or 'unknown', file.content_type or 'image/jpeg')
+    return {
+        'user_id': user_id,
+        'filename': file.filename,
+        'url': url,
+        'size': len(contents),
+    }

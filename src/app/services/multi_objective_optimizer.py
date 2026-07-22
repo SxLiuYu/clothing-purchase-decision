@@ -35,18 +35,18 @@ class MultiObjectiveOptimizer:
     
     # 默认权重
     DEFAULT_WEIGHTS = {
-        ObjectiveType.AESTHETIC: 0.30,
-        ObjectiveType.REUSE: 0.25,
-        ObjectiveType.SCENARIO: 0.25,
-        ObjectiveType.BODY_FIT: 0.20
+        ObjectiveType.BODY_FIT: 0.50,
+        ObjectiveType.AESTHETIC: 0.20,
+        ObjectiveType.REUSE: 0.15,
+        ObjectiveType.SCENARIO: 0.10,
     }
     
     # 目标阈值
     TARGETS = {
-        ObjectiveType.AESTHETIC: 85.0,
+        ObjectiveType.BODY_FIT: 0.85,
+        ObjectiveType.AESTHETIC: 80.0,
         ObjectiveType.REUSE: 0.7,
         ObjectiveType.SCENARIO: 0.8,
-        ObjectiveType.BODY_FIT: 0.9
     }
     
     def __init__(self, custom_weights: Optional[Dict] = None):
@@ -202,7 +202,7 @@ class MultiObjectiveOptimizer:
     
     def _calculate_body_fit_score(self, candidate: Dict, user_profile: Dict) -> float:
         """计算身体适配度"""
-        fit_preferences = user_profile.get('fit_preferences', {})
+        fit_preferences = user_profile.get('fit_preference', {})
         sensitive_areas = set(user_profile.get('sensitive_areas', []))
         
         items = candidate.get('items', [])
