@@ -2,7 +2,7 @@ name: Debug Tests
 
 on:
   push:
-    branches: [debug-ci]
+    branches: [main, debug-ci]
   workflow_dispatch:
 
 jobs:
