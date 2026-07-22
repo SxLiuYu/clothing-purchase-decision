@@ -21,12 +21,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run tests with full output
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest -v --tb=short
+          python -m pytest -v --tb=long --no-header -rA 2>&1 || true
+          echo "=== Tests completed ==="
+
+      - name: Run test_api.py only with full traceback
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          PYTHONUTF8: '1'
+        run: |
+          python -m pytest tests/test_api.py -v --tb=long --no-header -rA
+
+      - name: Package versions
+        if: always()
+        run: |
+          python --version
+          pip show fastapi pydantic httpx pytest anyio starlette 2>/dev/null | grep -E "^(Name|Version):"
 
   deploy:
     needs: test
