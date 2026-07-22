@@ -21,11 +21,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify project structure
+        run: |
+          echo "=== Project structure ==="
+          ls -la
+          echo "=== docs/design ==="
+          ls -la docs/design/ || echo "docs/design not found"
+          echo "=== Python path ==="
+          python -c "import sys; print(sys.path)"
+
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src
+          PYTHONUTF8: '1'
         run: |
-          python -m pytest -v
+          python -m pytest -v --tb=short
 
   deploy:
     needs: test
@@ -53,4 +63,4 @@ jobs:
         run: |
           sleep 5
           curl -f -m 10 http://${{ secrets.DEPLOY_HOST }}:8000/health || exit 1
-          echo "✅ Deployment verified: API is healthy"
+          echo "Deployment verified: API is healthy"
