@@ -31,9 +31,9 @@ jobs:
           TEST_EXIT_CODE=${PIPESTATUS[0]}
           echo "PYTEST_EXIT_CODE=$TEST_EXIT_CODE" >> $GITHUB_ENV
           if [ "$TEST_EXIT_CODE" != "0" ]; then
-            echo "::error::Tests failed with exit code $TEST_EXIT_CODE"
-            echo "=== Last 50 lines of test output ==="
-            tail -50 pytest_output.log
+            echo "Tests failed with exit code $TEST_EXIT_CODE"
+            echo "=== Full test output ==="
+            cat pytest_output.log
             exit 1
           fi
           echo "All tests passed!"
