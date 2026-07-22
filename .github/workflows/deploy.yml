@@ -26,10 +26,19 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_api.py -v --tb=long --no-header -rA 2>&1 | tee test_api_output.txt || true
-          echo "=== TEST OUTPUT START ==="
-          cat test_api_output.txt
-          echo "=== TEST OUTPUT END ==="
+          set +e
+          python -m pytest tests/test_api.py -v --tb=long --no-header -rA 2>&1 | tee test_api_output.txt
+          echo "EXIT_CODE=${PIPESTATUS[0]}" >> $GITHUB_ENV
+
+      - name: Upload test output as commit
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b ci-test-output
+          git add -f test_api_output.txt
+          git commit -m "ci: test_api.py output (auto-generated)" --allow-empty
+          git push -f origin ci-test-output
 
       - name: Package versions
         if: always()
@@ -37,13 +46,11 @@ jobs:
           python --version
           pip list 2>/dev/null | grep -iE "fastapi|pydantic|httpx|pytest|anyio|starlette|uvicorn"
 
-      - name: Upload test output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-api-output
-          path: test_api_output.txt
-          retention-days: 7
+      - name: Fail if tests failed
+        if: env.EXIT_CODE != '0'
+        run: |
+          echo "Tests failed with exit code ${{ env.EXIT_CODE }}"
+          exit 1
 
   deploy:
     needs: test
