@@ -19,30 +19,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run test_api.py with full traceback
+      - name: Run test_api.py with full output
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_api.py -v --tb=long --no-header -rA
+          python -m pytest tests/test_api.py -v --tb=long --no-header -rA 2>&1 | tee /tmp/test_output.txt
+          echo "EXIT_CODE=$?" >> $GITHUB_ENV
 
-      - name: Run test_api.py::test_set_body_profile only
-        if: failure()
+      - name: Show test output
+        if: always()
+        run: |
+          echo "=== FULL TEST OUTPUT ==="
+          cat /tmp/test_output.txt
+          echo "=== END TEST OUTPUT ==="
+
+      - name: Run single test: test_health
+        if: always()
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_api.py::test_set_body_profile -v --tb=long
+          python -m pytest tests/test_api.py::test_health -v --tb=long 2>&1 | tee /tmp/test_health.txt
+          cat /tmp/test_health.txt
 
-      - name: Run test_api.py::test_health only
-        if: failure()
+      - name: Run single test: test_set_body_profile
+        if: always()
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_api.py::test_health -v --tb=long
+          python -m pytest tests/test_api.py::test_set_body_profile -v --tb=long 2>&1 | tee /tmp/test_profile.txt
+          cat /tmp/test_profile.txt
 
-      - name: Python version and package info
+      - name: Python and package info
         run: |
           python --version
-          pip show fastapi pydantic httpx pytest
+          pip show fastapi pydantic httpx pytest anyio starlette
