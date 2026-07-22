@@ -1,8 +1,6 @@
 name: Debug Tests
 
 on:
-  push:
-    branches: [main, debug-ci]
   workflow_dispatch:
 
 jobs:
@@ -21,33 +19,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run test_api.py only
+      - name: Run test_api.py with full traceback
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_api.py -v --tb=long
+          python -m pytest tests/test_api.py -v --tb=long --no-header -rA
 
-      - name: Run test_design_spec.py only
-        if: always()
+      - name: Run test_api.py::test_set_body_profile only
+        if: failure()
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_design_spec.py -v --tb=long
+          python -m pytest tests/test_api.py::test_set_body_profile -v --tb=long
 
-      - name: Run test_design_functional.py only
-        if: always()
+      - name: Run test_api.py::test_health only
+        if: failure()
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest tests/test_design_functional.py -v --tb=long
+          python -m pytest tests/test_api.py::test_health -v --tb=long
 
-      - name: Run test_superpower_fixes.py only
-        if: always()
-        env:
-          PYTHONPATH: ${{ github.workspace }}/src
-          PYTHONUTF8: '1'
+      - name: Python version and package info
         run: |
-          python -m pytest tests/test_superpower_fixes.py -v --tb=long
+          python --version
+          pip show fastapi pydantic httpx pytest
