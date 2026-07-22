@@ -165,7 +165,7 @@ class CombinationGapCalculator:
         for scenario, required_items in self.scenario_definitions.items():
             current_scenario_items = [
                 item for item in wardrobe_items 
-                if any(occ in item.get('occasion', []) for occ in required_items)
+                if any(occ in (item.get('occasion') or []) for occ in required_items)
             ]
             
             # 计算新衣是否填补场景缺口
@@ -319,8 +319,8 @@ class CombinationGapCalculator:
     def _can_combine(self, item1: Dict, item2: Dict) -> bool:
         """判断两件衣物是否可以搭配"""
         # 季节兼容性
-        seasons1 = set(item1.get('season', '').split(','))
-        seasons2 = set(item2.get('season', '').split(','))
+        seasons1 = set((item1.get('season') or '').split(','))
+        seasons2 = set((item2.get('season') or '').split(','))
         
         # 完全相反的季节不能搭配
         incompatible = ({'spring', 'fall'} & seasons1) and ({'summer', 'winter'} & seasons2)
@@ -329,8 +329,8 @@ class CombinationGapCalculator:
                           ({'winter'} in seasons1 and {'summer'} in seasons2)
         
         # 场合兼容性
-        occasions1 = set(item1.get('occasion', []))
-        occasions2 = set(item2.get('occasion', []))
+        occasions1 = set(item1.get('occasion') or [])
+        occasions2 = set(item2.get('occasion') or [])
         
         # 至少有一个共同场合
         if occasions1 and occasions2 and not (occasions1 & occasions2):
@@ -349,14 +349,14 @@ class CombinationGapCalculator:
             score += 15
         
         # 季节重叠
-        seasons1 = set(item1.get('season', '').split(','))
-        seasons2 = set(item2.get('season', '').split(','))
+        seasons1 = set((item1.get('season') or '').split(','))
+        seasons2 = set((item2.get('season') or '').split(','))
         season_overlap = len(seasons1 & seasons2)
         score += season_overlap * 10
         
         # 场合匹配
-        occasions1 = set(item1.get('occasion', []))
-        occasions2 = set(item2.get('occasion', []))
+        occasions1 = set(item1.get('occasion') or [])
+        occasions2 = set(item2.get('occasion') or [])
         if occasions1 & occasions2:
             score += 15
         

@@ -91,6 +91,32 @@ class SQLiteStore:
         self._conn.commit()
         return default
 
+    @property
+    def users(self) -> Dict[str, bool]:
+        """向后兼容：检查用户是否存在"""
+        cur = self._conn.execute("SELECT user_id FROM users")
+        return {row['user_id']: True for row in cur.fetchall()}
+
+    @property
+    def items(self) -> Dict[str, Dict]:
+        """向后兼容：所有已录入物品"""
+        cur = self._conn.execute("SELECT * FROM items")
+        result = {}
+        for row in cur.fetchall():
+            result[row['item_id']] = {
+                'item_id': row['item_id'],
+                'user_id': row['user_id'],
+                'category': row['category'],
+                'style': row['style'],
+                'season': row['season'],
+                'occasion': row['occasion'],
+                'color': row['color'],
+                'material': row['material'],
+                'attributes': json.loads(row['attributes'] or '{}'),
+                'price': row['price'],
+            }
+        return result
+
     def _save_user(self, user_id: str, body_profile: Dict, preferences: Dict, wardrobe_graph: Dict):
         self._conn.execute(
             "UPDATE users SET body_profile=?, preferences=?, wardrobe_graph=? WHERE user_id=?",
