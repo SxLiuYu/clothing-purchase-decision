@@ -21,26 +21,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests with full output
+      - name: Run test_api.py and capture output
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PYTHONUTF8: '1'
         run: |
-          python -m pytest -v --tb=long --no-header -rA 2>&1 || true
-          echo "=== Tests completed ==="
-
-      - name: Run test_api.py only with full traceback
-        env:
-          PYTHONPATH: ${{ github.workspace }}/src
-          PYTHONUTF8: '1'
-        run: |
-          python -m pytest tests/test_api.py -v --tb=long --no-header -rA
+          python -m pytest tests/test_api.py -v --tb=long --no-header -rA 2>&1 | tee test_api_output.txt || true
+          echo "=== TEST OUTPUT START ==="
+          cat test_api_output.txt
+          echo "=== TEST OUTPUT END ==="
 
       - name: Package versions
         if: always()
         run: |
           python --version
-          pip show fastapi pydantic httpx pytest anyio starlette 2>/dev/null | grep -E "^(Name|Version):"
+          pip list 2>/dev/null | grep -iE "fastapi|pydantic|httpx|pytest|anyio|starlette|uvicorn"
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-api-output
+          path: test_api_output.txt
+          retention-days: 7
 
   deploy:
     needs: test
