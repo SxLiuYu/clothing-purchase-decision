@@ -1,0 +1,56 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python -m pytest -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          script: |
+            cd /opt/clothing-decision
+            git pull origin main
+            source .venv/bin/activate
+            pip install -r requirements.txt
+            systemctl restart clothing-decision
+            sleep 3
+            systemctl status clothing-decision --no-pager
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f -m 10 http://${{ secrets.DEPLOY_HOST }}:8000/health || exit 1
+          echo "✅ Deployment verified: API is healthy"

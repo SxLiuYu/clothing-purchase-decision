@@ -1,0 +1,18 @@
+[Unit]
+Description=Clothing Purchase Decision API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/clothing-decision
+Environment="STORE_DB_PATH=/opt/clothing-decision/data/wardrobe.db"
+Environment="APP_ENV=production"
+Environment="APP_HOST=0.0.0.0"
+Environment="APP_PORT=8000"
+ExecStart=/opt/clothing-decision/.venv/bin/python run.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

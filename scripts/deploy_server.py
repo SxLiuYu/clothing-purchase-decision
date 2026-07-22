@@ -1,14 +1,25 @@
 ﻿import paramiko
 import os
 
-password = 'YuJin#Ze$12'
-HOST = '123.57.107.21'
-USER = 'root'
+# 从环境变量读取部署配置
+HOST = os.environ.get('DEPLOY_HOST', '')
+USER = os.environ.get('DEPLOY_USER', '')
+PASSWORD = os.environ.get('DEPLOY_PASSWORD', '')
+
+# 远程路径
+REMOTE_PROJECT_PATH = os.environ.get('DEPLOY_REMOTE_PATH', '/opt/clothing-decision')
 
 def deploy():
+    # 验证环境变量
+    if not all([HOST, USER, PASSWORD]):
+        print('❌ 错误: 请设置环境变量 DEPLOY_HOST, DEPLOY_USER, DEPLOY_PASSWORD')
+        print('   示例: export DEPLOY_HOST=123.57.107.21')
+        print('   或创建 .env 文件并运行: source .env && python scripts/deploy_server.py')
+        return
+    
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(HOST, username=USER, password=password, timeout=15)
+    client.connect(HOST, username=USER, password=PASSWORD, timeout=15)
     
     # 1. 更新系统
     print('[1] Updating system...')
@@ -20,18 +31,21 @@ def deploy():
     
     # 3. 创建项目目录
     print('[3] Setting up project directory...')
-    run(client, 'mkdir -p /opt/clothing-decision')
+    run(client, f'mkdir -p {REMOTE_PROJECT_PATH}/data')
     
     # 4. 上传项目文件
     print('[4] Uploading project files...')
     sftp = client.open_sftp()
     for root, dirs, files in os.walk('.'):
-        # 跳过 git 和缓存
-        if '.git' in root or '__pycache__' in root or 'node_modules' in root:
+        # 跳过 git、缓存、虚拟环境、敏感文件
+        if '.git' in root or '__pycache__' in root or 'node_modules' in root or '.venv' in root:
             continue
         for file in files:
             local_path = os.path.join(root, file)
-            remote_path = f'/opt/clothing-decision/{os.path.relpath(local_path, ".")}'
+            # 跳过 .env 文件（包含敏感信息）
+            if file == '.env':
+                continue
+            remote_path = f'{REMOTE_PROJECT_PATH}/{os.path.relpath(local_path, ".")}'
             try:
                 sftp.put(local_path, remote_path)
                 print(f'  Uploaded: {local_path}')
@@ -41,22 +55,22 @@ def deploy():
     
     # 5. 创建虚拟环境并安装依赖
     print('[5] Setting up virtual environment...')
-    run(client, 'cd /opt/clothing-decision && python3 -m venv .venv')
-    run(client, 'source /opt/clothing-decision/.venv/bin/activate && pip install --upgrade pip')
-    run(client, 'source /opt/clothing-decision/.venv/bin/activate && pip install fastapi uvicorn pydantic httpx python-dotenv')
-    run(client, 'source /opt/clothing-decision/.venv/bin/activate && pip install pytest pytest-asyncio')
+    run(client, f'cd {REMOTE_PROJECT_PATH} && python3 -m venv .venv')
+    run(client, f'source {REMOTE_PROJECT_PATH}/.venv/bin/activate && pip install --upgrade pip')
+    run(client, f'source {REMOTE_PROJECT_PATH}/.venv/bin/activate && pip install -r {REMOTE_PROJECT_PATH}/requirements.txt')
     
     # 6. 创建 systemd 服务
     print('[6] Creating systemd service...')
-    service_content = '''[Unit]
+    service_content = f'''[Unit]
 Description=Clothing Purchase Decision API
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/clothing-decision
-ExecStart=/opt/clothing-decision/.venv/bin/python run.py
+WorkingDirectory={REMOTE_PROJECT_PATH}
+Environment="STORE_DB_PATH={REMOTE_PROJECT_PATH}/data/wardrobe.db"
+ExecStart={REMOTE_PROJECT_PATH}/.venv/bin/python run.py
 Restart=always
 RestartSec=10
 
