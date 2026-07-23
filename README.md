@@ -62,3 +62,9 @@ python -m pytest tests/test_api.py   # 仅 API 集成测试
 ```
 
 详见 [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)。
+
+## 安全提示
+
+- **部署凭据**：必须通过环境变量传入，禁止在脚本中硬编码密码
+- **部署脚本**：`scripts/deploy_server.py` 是唯一部署入口，使用 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_PASSWORD` 环境变量
+- **示例配置**：参见 `.env.example` 文件
