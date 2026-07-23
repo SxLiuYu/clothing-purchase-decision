@@ -138,7 +138,56 @@ class TestSuperpower3CombinationGap:
         assert 'coverage_delta' in result
         assert 'filled_gaps' in result
         assert 'new_overall_coverage' in result
-    
+
+    def test_season_compatibility(self):
+        """测试季节互斥规则：summer↔winter, spring↔fall"""
+        calculator = CombinationGapCalculator()
+
+        # summer + winter 不能搭配
+        assert not calculator._can_combine(
+            {'season': 'summer'}, {'season': 'winter'}
+        )
+
+        # winter + summer 不能搭配
+        assert not calculator._can_combine(
+            {'season': 'winter'}, {'season': 'summer'}
+        )
+
+        # spring + fall 不能搭配
+        assert not calculator._can_combine(
+            {'season': 'spring'}, {'season': 'fall'}
+        )
+
+        # fall + spring 不能搭配
+        assert not calculator._can_combine(
+            {'season': 'fall'}, {'season': 'spring'}
+        )
+
+        # 多季节：spring,summer + fall,winter 不能搭配（spring vs fall）
+        assert not calculator._can_combine(
+            {'season': 'spring,summer'}, {'season': 'fall,winter'}
+        )
+
+        # 多季节：spring + fall,summer 不能搭配（spring vs fall）
+        assert not calculator._can_combine(
+            {'season': 'spring'}, {'season': 'fall,summer'}
+        )
+
+        # 空 season 可以搭配
+        assert calculator._can_combine(
+            {'season': ''}, {'season': 'summer'}
+        )
+
+        # 多季节：spring,summer + fall 不能搭配（spring vs fall 互斥）
+        assert not calculator._can_combine(
+            {'season': 'spring,summer'}, {'season': 'fall'}
+        )
+
+        # 多季节：summer + fall,winter 不能搭配（summer vs winter）
+        assert not calculator._can_combine(
+            {'season': 'summer'}, {'season': 'fall,winter'}
+        )
+
     def test_roi_score_calculation(self):
         calculator = CombinationGapCalculator()
         

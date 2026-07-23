@@ -322,11 +322,19 @@ class CombinationGapCalculator:
         seasons1 = set((item1.get('season') or '').split(','))
         seasons2 = set((item2.get('season') or '').split(','))
         
-        # 完全相反的季节不能搭配
-        incompatible = ({'spring', 'fall'} & seasons1) and ({'summer', 'winter'} & seasons2)
-        if incompatible:
-            incompatible = ({'summer'} in seasons1 and {'winter'} in seasons2) or \
-                          ({'winter'} in seasons1 and {'summer'} in seasons2)
+        # 移除空字符串（当 season 为空时 split 会返回 ['']）
+        seasons1.discard('')
+        seasons2.discard('')
+        
+        # 季节互斥规则：
+        # - summer ↔ winter（面料/厚度差异大）
+        # - spring ↔ fall（春秋季服装重量差异大）
+        if ('summer' in seasons1 and 'winter' in seasons2) or \
+           ('winter' in seasons1 and 'summer' in seasons2):
+            return False
+        if ('spring' in seasons1 and 'fall' in seasons2) or \
+           ('fall' in seasons1 and 'spring' in seasons2):
+            return False
         
         # 场合兼容性
         occasions1 = set(item1.get('occasion') or [])
