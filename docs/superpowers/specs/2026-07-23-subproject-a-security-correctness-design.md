@@ -35,6 +35,8 @@ incompatible = ({'summer'} in seasons1 and {'winter'} in seasons2) or \
 
 **注意**：第 326 行的 `incompatible` 初始值检查 `({'spring', 'fall'} & seasons1) and ({'summer', 'winter'} & seasons2)` 本身也有问题——它检查的是"一件是春秋 + 另一件是夏冬"，但夏冬本身不是互斥的（winter 和 summer 不会同时出现在同一件衣服上）。逻辑混乱。
 
+**扩展互斥规则**：除 summer↔winter 外，spring↔fall 也应互斥（春秋季服装面料重量差异大，不应混合搭配）。
+
 ---
 
 ## 二、修复方案
@@ -71,10 +73,14 @@ def _can_combine(self, item1: Dict, item2: Dict) -> bool:
     seasons1.discard('')
     seasons2.discard('')
     
-    # 季节互斥：夏天和冬天不能搭配
-    if 'summer' in seasons1 and 'winter' in seasons2:
+    # 季节互斥规则：
+    # - summer ↔ winter（面料/厚度差异大）
+    # - spring ↔ fall（春秋季服装重量差异大）
+    if ('summer' in seasons1 and 'winter' in seasons2) or \
+       ('winter' in seasons1 and 'summer' in seasons2):
         return False
-    if 'winter' in seasons1 and 'summer' in seasons2:
+    if ('spring' in seasons1 and 'fall' in seasons2) or \
+       ('fall' in seasons1 and 'spring' in seasons2):
         return False
     
     # 场合兼容性（保持不变）
@@ -92,6 +98,7 @@ def _can_combine(self, item1: Dict, item2: Dict) -> bool:
 1. 移除第 326-329 行混乱的 `incompatible` 逻辑
 2. 直接用 `'summer' in seasons1` 替代 `{'summer'} in seasons1`
 3. 添加 `discard('')` 处理空 season 字符串
+4. 扩展互斥规则：除 summer↔winter 外，新增 spring↔fall 互斥
 
 ---
 
@@ -113,9 +120,34 @@ def test_season_compatibility():
         {'season': 'winter'}, {'season': 'summer'}
     )
     
-    # spring + fall 可以搭配
-    assert calc._can_combine(
+    # spring + fall 不能搭配
+    assert not calc._can_combine(
         {'season': 'spring'}, {'season': 'fall'}
+    )
+    
+    # fall + spring 不能搭配
+    assert not calc._can_combine(
+        {'season': 'fall'}, {'season': 'spring'}
+    )
+    
+    # 多季节：spring,summer + fall,winter 不能搭配（spring vs fall）
+    assert not calc._can_combine(
+        {'season': 'spring,summer'}, {'season': 'fall,winter'}
+    )
+    
+    # 多季节：spring + fall,summer 不能搭配（spring vs fall）
+    assert not calc._can_combine(
+        {'season': 'spring'}, {'season': 'fall,summer'}
+    )
+    
+    # summer + winter 不能搭配
+    assert not calc._can_combine(
+        {'season': 'summer'}, {'season': 'winter'}
+    )
+    
+    # winter + summer 不能搭配
+    assert not calc._can_combine(
+        {'season': 'winter'}, {'season': 'summer'}
     )
     
     # 空 season 可以搭配
@@ -123,7 +155,8 @@ def test_season_compatibility():
         {'season': ''}, {'season': 'summer'}
     )
     
-    # 多季节：spring,summer + fall 可以搭配
+    # 多季节：spring,summer + fall 可以搭配（spring vs fall 互斥，但 summer 与 fall 无冲突）
+    # 注意：spring,summer 含 spring，fall 不含 spring，所以不触发 spring↔fall 互斥
     assert calc._can_combine(
         {'season': 'spring,summer'}, {'season': 'fall'}
     )
@@ -150,4 +183,6 @@ def test_season_compatibility():
 
 ---
 
-*设计文档版本：v1.0 | 2026-07-23*
+*设计文档版本：v1.1 | 2026-07-23*
+
+> 变更记录：v1.1 扩展季节互斥规则，新增 spring↔fall 互斥，补充多季节边界测试用例。
